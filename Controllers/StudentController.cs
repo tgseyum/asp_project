@@ -1,71 +1,58 @@
 using Microsoft.AspNetCore.Mvc;
-using myproject.Models; 
-using myproject.ViewModels; 
+using myproject.Data;
+using myproject.Models;
 
-namespace StudentMVC.Controllers
+namespace myproject.Controllers
 {
     public class StudentController : Controller
     {
-        // Temporary storage for submitted information.
-        private static List<StudentCourseViewModel> studentCourses = new();
+        // Store the database context in a private variable
+        private readonly ApplicationDbContext _context;
 
-        // GET: /Student/Index //http://localhost:port/ , http://localhost:port/student
-        // Displays the submitted students and courses.
-        public IActionResult Index()  
+        // ASP.NET Core provides ApplicationDbContext
+        // through Dependency Injection
+        public StudentController(ApplicationDbContext context)
         {
-            return View(studentCourses);
+            _context = context;
         }
 
-        // GET: http://loclahost:port/student/create
-        // Displays the Create form.
-        [HttpGet]
-        public IActionResult Create() //http
+        // GET: /Student/Index
+        public IActionResult Index()
         {
+            // Get all students from the database
+            var students = _context.Students.ToList();
+
+            // Send the students to Index.cshtml
+            return View(students);
+        }
+
+        // GET: /Student/Create
+        public IActionResult Create()
+        {
+            // Display the empty Create form
             return View();
         }
 
-        // POST: http://loclahost:port/student/create
-        // Receives the submitted form information.
+        // POST: /Student/Create
         [HttpPost]
-        public IActionResult Create(StudentCreateViewModel viewModel)
+        [ValidateAntiForgeryToken]
+        public IActionResult Create(Student student)
         {
-            // Check the validation rules.
-            if (!ModelState.IsValid)
+            // Check whether the submitted data is valid
+            if (ModelState.IsValid)
             {
-                return View(viewModel);
+                // Add the student to the Students table
+                _context.Students.Add(student);
+
+                // Save the changes to the database
+                _context.SaveChanges();
+
+                // Return to the student list
+                return RedirectToAction(nameof(Index));
             }
 
-            // Create a Student Model from the ViewModel.
-            var student = new Student
-            {
-                Id = studentCourses.Count + 1,
-                Name = viewModel.Name,
-                Program = viewModel.Program
-            };
-
-            // Create a Course Model from the ViewModel.
-            var course = new Course
-            {
-                Id = studentCourses.Count + 1,
-                CourseCode = viewModel.CourseCode,
-                CourseName = viewModel.CourseName,
-                Instructor = viewModel.Instructor
-            };
-
-            // Combine the Student and Course Models
-            // into a ViewModel for the Index View.
-            var studentCourse = new StudentCourseViewModel
-            {
-                Student = student,
-                Course = course,
-                EnrollmentDate = viewModel.EnrollmentDate
-            };
-
-            // Store the combined information temporarily.
-            studentCourses.Add(studentCourse);
-
-            // Return to the Index page.
-            return RedirectToAction("Index");
+            // If validation fails, display the form again
+            return View(student);
         }
     }
 }
