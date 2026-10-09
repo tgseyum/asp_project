@@ -15,5 +15,6 @@ namespace myproject.Data
 
         // Represents the Students table
         public DbSet<Student> Students { get; set; }
+        public DbSet<Course> Courses {get;set;}
     }
 }
